@@ -1,0 +1,48 @@
+export set FABRIC_CFG_PATH=/opt/lzy/peer
+peer node start >> log_peer.log 2>&1 &
+
+configtxgen -profile Channel -outputCreateChannelTx ./fabricchannel.tx -channelID fabricchannel
+configtxgen -profile Channel -outputAnchorPeersUpdate ./Org1MSPanchors.tx -channelID fabricchannel -asOrg Org1MSP
+
+export set FABRIC_CFG_PATH=/opt/lzy/peer
+export set CORE_PEER_LOCALMSPID="Org1MSP"
+export set CORE_PEER_MSPCONFIGPATH=/opt/lzy/fabricconfig/crypto-config/peerOrganizations/org1.lzy.com/users/Admin@org1.lzy.com/msp
+peer channel create -t 50s -o orderer.lzy.com:7050 -c fabricchannel -f /opt/lzy/order/fabricchannel.tx
+
+2021-02-10 19:30:52.830 CST [channelCmd] InitCmdFactory -> INFO 001 Endorser and orderer connections initialized
+2021-02-10 19:30:53.103 CST [cli.common] readBlock -> INFO 002 Received block: 0
+
+
+
+
+export set CORE_PEER_LOCALMSPID="Org1MSP"
+export set CORE_PEER_ADDRESS=peer0.org1.lzy.com:7051
+export set CORE_PEER_MSPCONFIGPATH=/opt/lzy/fabricconfig/crypto-config/peerOrganizations/org1.lzy.com/users/Admin@org1.lzy.com/msp
+peer channel join -b /opt/lzy/order/fabricchannel.block
+
+2021-02-10 19:43:22.714 CST [channelCmd] InitCmdFactory -> INFO 001 Endorser and orderer connections initialized
+2021-02-10 19:43:22.926 CST [channelCmd] executeJoin -> INFO 002 Successfully submitted proposal to join channel
+
+
+peer channel update -o orderer.lzy.com:7050 -c fabricchannel -f /opt/lzy/order/Org1MSPanchors.tx
+
+2021-02-10 19:46:05.061 CST [channelCmd] InitCmdFactory -> INFO 001 Endorser and orderer connections initialized
+2021-02-10 19:46:05.150 CST [channelCmd] update -> INFO 002 Successfully submitted channel update
+
+
+#in a word
+export set FABRIC_CFG_PATH=/opt/lzy/peer
+export set CORE_PEER_LOCALMSPID="Org1MSP"
+export set CORE_PEER_ADDRESS=peer0.org1.lzy.com:7051
+export set CORE_PEER_MSPCONFIGPATH=/opt/lzy/fabricconfig/crypto-config/peerOrganizations/org1.lzy.com/users/Admin@org1.lzy.com/msp
+
+peer channel create -t 50s -o orderer.lzy.com:7050 -c fabricchannel -f /opt/lzy/order/fabricchannel.tx
+peer channel join -b /opt/lzy/order/fabricchannel.block
+peer channel update -o orderer.lzy.com:7050 -c fabricchannel -f /opt/lzy/order/Org1MSPanchors.tx
+
+
+peer chaincode install -n lwz -v 1.0 -p github.com/lzy/chaincodestudy/sat
+peer chaincode install -n r_test_cc6 -v 1.0 -p github.com/lzy/chaincodestudy/sat
+peer chaincode instantiate -o orderer.lzy.com:7050 -C fabricchannel -n lwz -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "OR('Org1MSP.member','Org2MSP.member')"
+
+peer chaincode invoke -o orderer.lzy.com:7050 -C fabricchannel -n lwz -c '{"Args":["invoke","putvalue","a","100"]}'
